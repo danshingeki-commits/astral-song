@@ -660,4 +660,28 @@
 
       <div class="full-progress-wrap">
         <div class="full-progress-bar" id="fullProgressBox">
-          <div class="full-progress-fill" id="full
+          <div class="full-progress-fill" id="fullProgressBar"></div>
+        </div>
+        <div class="time-flex">
+          <span id="currentTime">0:00</span>
+          <span id="totalDuration">0:00</span>
+        </div>
+      </div>
+
+      <div class="full-controls-row">
+        <button class="btn-ctrl-round" id="btnPrev"><i class="fas fa-backward-step"></i></button>
+        <button class="btn-play-massive" id="btnPlayFull"><i class="fas fa-play" id="fullPlayIcon"></i></button>
+        <button class="btn-ctrl-round" id="btnNext"><i class="fas fa-forward-step"></i></button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- REPRODUCTOR EN SEGUNDO PLANO -->
+  <div style="position: fixed; bottom: 0; right: 0; width: 1px; height: 1px; opacity: 0.01; overflow: hidden; pointer-events: none;">
+    <div id="ytPlayer"></div>
+  </div>
+
+  <script src="app.js?v=vivi_ui"></script>
+</body>
+</html>
