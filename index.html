@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Astral Beats</title>
+  <title>Astral Music</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="style.css">
@@ -15,77 +15,147 @@
 </head>
 <body>
 
-  <div class="app-wrapper">
+  <div class="app-container">
 
-    <header class="app-header">
-      <div class="brand">
-        <i class="fas fa-compact-disc logo-icon"></i>
-        <h1>ASTRAL BEATS</h1>
+    <!-- SECCIÓN: INICIO (HOME / VIMUSIC FEED) -->
+    <main id="viewHome" class="view active">
+      <header class="home-header">
+        <div>
+          <span class="greeting" id="greetingText">Buenas noches</span>
+          <h2>Escuchar ahora</h2>
+        </div>
+        <div class="header-avatar"><i class="fas fa-bolt"></i></div>
+      </header>
+
+      <!-- FILTROS RÁPIDOS -->
+      <div class="quick-tags">
+        <button class="tag active" onclick="cargarFeed('Phonk')">Phonk</button>
+        <button class="tag" onclick="cargarFeed('Slowed reverb')">Slowed</button>
+        <button class="tag" onclick="cargarFeed('Trap latino')">Trap</button>
+        <button class="tag" onclick="cargarFeed('Anime openings')">Anime</button>
       </div>
-      <span class="status-badge" id="statusBadge">CONECTANDO</span>
-    </header>
 
-    <div class="search-container">
-      <i class="fas fa-search search-icon"></i>
-      <input type="text" id="searchInput" placeholder="Busca canción, artista o slowed..." autocomplete="off">
-      <button id="btnSearch" class="btn-search" title="Buscar">
-        <i class="fas fa-arrow-right"></i>
-      </button>
+      <!-- SECCIÓN RECOMENDADOS -->
+      <section class="section-block">
+        <h3 class="section-title">Para ti</h3>
+        <div class="card-grid" id="quickPicks">
+          <div class="loader-item"><i class="fas fa-spinner fa-spin"></i> Cargando temas...</div>
+        </div>
+      </section>
+
+      <!-- SECCIÓN TENDENCIAS -->
+      <section class="section-block">
+        <h3 class="section-title">En tendencia</h3>
+        <div class="horizontal-scroll" id="trendingPicks"></div>
+      </section>
+    </main>
+
+    <!-- SECCIÓN: BUSCAR -->
+    <main id="viewSearch" class="view">
+      <div class="search-header">
+        <div class="search-input-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="searchInput" placeholder="Canciones, artistas o edits..." autocomplete="off">
+          <button id="btnClearSearch" class="btn-clear"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+
+      <div class="search-results-list" id="searchResults">
+        <div class="empty-state">
+          <i class="fas fa-magnifying-glass"></i>
+          <p>Escribe una canción o artista para explorar</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- SECCIÓN: BIBLIOTECA -->
+    <main id="viewLibrary" class="view">
+      <header class="home-header">
+        <div>
+          <h2>Tu Biblioteca</h2>
+          <span class="greeting">Historial reciente</span>
+        </div>
+      </header>
+      <div class="library-list" id="libraryList">
+        <div class="empty-state">
+          <i class="fas fa-music"></i>
+          <p>Tus canciones reproducidas aparecerán aquí.</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- REPRODUCTOR COMPLETO DESLIZABLE (FULL PLAYER) -->
+    <div class="full-player" id="fullPlayer">
+      <div class="player-top-bar">
+        <button id="btnClosePlayer" class="icon-btn"><i class="fas fa-chevron-down"></i></button>
+        <span>REPRODUCIENDO</span>
+        <button id="btnSpeed" class="speed-pill">1.0x</button>
+      </div>
+
+      <div class="full-cover-wrapper">
+        <img id="fullCover" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80" alt="Cover">
+      </div>
+
+      <div class="full-track-meta">
+        <h2 id="fullTitle">Sin reproducción</h2>
+        <p id="fullArtist">Selecciona una pista</p>
+      </div>
+
+      <div class="progress-container">
+        <div class="progress-bar-bg" id="fullProgressBox">
+          <div class="progress-bar-fill" id="fullProgressBar"></div>
+        </div>
+        <div class="time-labels">
+          <span id="currentTime">0:00</span>
+          <span id="totalDuration">0:00</span>
+        </div>
+      </div>
+
+      <div class="player-main-controls">
+        <button class="ctrl-btn secondary" id="btnPrev"><i class="fas fa-backward-step"></i></button>
+        <button class="ctrl-btn primary" id="btnPlayFull"><i class="fas fa-play" id="fullPlayIcon"></i></button>
+        <button class="ctrl-btn secondary" id="btnNext"><i class="fas fa-forward-step"></i></button>
+      </div>
     </div>
 
-    <section class="player-card">
-      <div class="vinyl-wrapper">
-        <div class="vinyl-disc" id="vinylDisc">
-          <img id="coverImg" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80" alt="Carátula">
-          <div class="vinyl-center-hole"></div>
+    <!-- MINI PLAYER FLOTANTE ESTILO VIMUSIC -->
+    <div class="mini-player" id="miniPlayer">
+      <div class="mini-progress-fill" id="miniProgressBar"></div>
+      <div class="mini-body" id="openFullPlayerTrigger">
+        <img id="miniCover" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=100&q=80" alt="Cover">
+        <div class="mini-info">
+          <span class="mini-title" id="miniTitle">Astral Music</span>
+          <span class="mini-artist" id="miniArtist">Listo para sonar</span>
         </div>
       </div>
+      <div class="mini-actions">
+        <button id="btnPlayMini" class="mini-btn"><i class="fas fa-play" id="miniPlayIcon"></i></button>
+      </div>
+    </div>
 
-      <div class="track-details">
-        <h2 id="trackTitle">Listo para sonar</h2>
-        <p id="trackArtist">Busca cualquier música arriba</p>
-      </div>
-
-      <div class="progress-box" id="progressBox">
-        <div class="progress-bar" id="progressBar"></div>
-      </div>
-      <div class="time-row">
-        <span id="currentTime">0:00</span>
-        <span id="totalDuration">0:00</span>
-      </div>
-
-      <div class="controls-row">
-        <button class="btn-ctrl" id="btnPrev" title="Anterior">
-          <i class="fas fa-backward-step"></i>
-        </button>
-        <button class="btn-play" id="btnPlay" title="Play / Pausa">
-          <i class="fas fa-play" id="playIcon"></i>
-        </button>
-        <button class="btn-ctrl" id="btnNext" title="Siguiente">
-          <i class="fas fa-forward-step"></i>
-        </button>
-        <button class="btn-speed" id="btnSpeed" title="Efecto de velocidad">1.0x</button>
-      </div>
-    </section>
-
-    <section class="results-section">
-      <div class="section-title">
-        <span>RESULTADOS EN LÍNEA</span>
-      </div>
-      <div class="track-list" id="trackList">
-        <div class="placeholder-msg">
-          <i class="fas fa-headphones"></i>
-          <p>Escribe cualquier tema completo o edit y presiona enter.</p>
-        </div>
-      </div>
-    </section>
+    <!-- BARRA INFERIOR DE NAVEGACIÓN (BOTTOM NAV) -->
+    <nav class="bottom-nav">
+      <button class="nav-tab active" data-view="viewHome">
+        <i class="fas fa-house"></i>
+        <span>Inicio</span>
+      </button>
+      <button class="nav-tab" data-view="viewSearch">
+        <i class="fas fa-search"></i>
+        <span>Buscar</span>
+      </button>
+      <button class="nav-tab" data-view="viewLibrary">
+        <i class="fas fa-lines-leaning"></i>
+        <span>Biblioteca</span>
+      </button>
+    </nav>
 
   </div>
 
+  <!-- MOTOR EN SEGUNDO PLANO -->
   <div style="position: fixed; bottom: 0; right: 0; width: 1px; height: 1px; opacity: 0.01; overflow: hidden; pointer-events: none;">
     <div id="ytPlayer"></div>
   </div>
 
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=spotify"></script>
 </body>
 </html>
