@@ -1,5 +1,5 @@
 /**
- * ASTRAL BEATS - Motor Oficial YouTube & Slowed
+ * ASTRAL BEATS - Motor Oficial YouTube con Background & MediaSession
  */
 
 const YOUTUBE_API_KEY = 'AIzaSyBrrhapuhd8qHryfuvGpaIjunruu7gow8k';
@@ -12,6 +12,10 @@ let updateInterval = null;
 
 const velocidades = [1.0, 0.75, 1.25];
 let velocidadIndex = 0;
+
+// Micro-audio en bucle para mantener el proceso multimedia activo en Android
+const audioKeepAlive = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+audioKeepAlive.loop = true;
 
 // Elementos de la interfaz
 const vinylDisc = document.getElementById('vinylDisc');
@@ -32,7 +36,7 @@ const currentTimeEl = document.getElementById('currentTime');
 const totalDurationEl = document.getElementById('totalDuration');
 const statusBadge = document.getElementById('statusBadge');
 
-// Cargar la API de YouTube de forma dinámica
+// Cargar motor nativo de YouTube
 function inicializarMotor() {
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
@@ -68,19 +72,31 @@ function manejarEstadoReproductor(event) {
     vinylDisc.classList.add('playing');
     playIcon.className = 'fas fa-pause';
     iniciarProgreso();
+    
+    // Activa persistencia de audio en segundo plano
+    audioKeepAlive.play().catch(() => {});
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'playing';
+    }
   } else if (event.data === YT.PlayerState.PAUSED) {
     vinylDisc.classList.remove('playing');
     playIcon.className = 'fas fa-play';
     detenerProgreso();
+    
+    audioKeepAlive.pause();
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'paused';
+    }
   } else if (event.data === YT.PlayerState.ENDED) {
     vinylDisc.classList.remove('playing');
     playIcon.className = 'fas fa-play';
+    audioKeepAlive.pause();
     cancionSiguiente();
   }
 }
 
 // ==========================================
-// BÚSQUEDA MEDIANTE TU CLAVE DE GOOGLE
+// BÚSQUEDA MEDIANTE GOOGLE OFICIAL
 // ==========================================
 async function buscarMusica() {
   const query = searchInput.value.trim();
@@ -130,7 +146,7 @@ async function buscarMusica() {
     trackList.innerHTML = `
       <div class="placeholder-msg">
         <i class="fas fa-triangle-exclamation"></i>
-        <p>Error de conexión al cargar el catálogo.</p>
+        <p>Error de conexión al cargar catálogo.</p>
       </div>
     `;
   }
@@ -162,7 +178,7 @@ function renderizarLista() {
 }
 
 // ==========================================
-// CONTROLES DE REPRODUCCIÓN & VELOCIDAD
+// CONTROLES DE REPRODUCCIÓN & MEDIASESSION
 // ==========================================
 function reproducirCancion(indice) {
   if (!isPlayerReady || indice < 0 || indice >= canciones.length) return;
@@ -175,6 +191,23 @@ function reproducirCancion(indice) {
 
   player.loadVideoById(cancion.id);
   player.setPlaybackRate(velocidades[velocidadIndex]);
+
+  // Sincronización con Android (Barra de notificaciones y Pantalla de Bloqueo)
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: cancion.titulo,
+      artist: cancion.artista,
+      album: 'Astral Beats',
+      artwork: [
+        { src: cancion.portada, sizes: '512x512', type: 'image/jpeg' }
+      ]
+    });
+
+    navigator.mediaSession.setActionHandler('play', () => alternarPlayPausa());
+    navigator.mediaSession.setActionHandler('pause', () => alternarPlayPausa());
+    navigator.mediaSession.setActionHandler('previoustrack', () => cancionAnterior());
+    navigator.mediaSession.setActionHandler('nexttrack', () => cancionSiguiente());
+  }
 }
 
 function alternarPlayPausa() {
@@ -220,7 +253,7 @@ function cancionAnterior() {
 }
 
 // ==========================================
-// BARRA DE TIEMPO Y PROGRESO
+// TIEMPO Y PROGRESO
 // ==========================================
 function formatearSegundos(seg) {
   if (isNaN(seg) || seg < 0) return "0:00";
@@ -262,7 +295,7 @@ progressBox.onclick = function(e) {
 };
 
 // ==========================================
-// EVENTOS
+// EVENTOS DE CONTROL
 // ==========================================
 btnSearch.onclick = buscarMusica;
 searchInput.onkeydown = (e) => {
