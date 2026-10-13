@@ -356,3 +356,21 @@ body {
   font-size: 12px;
   color: var(--accent-cyan);
 }
+/* BOTÓN DE VELOCIDAD / SLOWED */
+.btn-speed {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
+  color: var(--accent-cyan);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+}
+
+.btn-speed:active {
+  transform: scale(0.92);
+  background: rgba(0, 242, 254, 0.2);
+}
