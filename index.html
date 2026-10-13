@@ -17,13 +17,13 @@
         <i class="fas fa-compact-disc logo-icon"></i>
         <h1>ASTRAL BEATS</h1>
       </div>
-      <span class="status-badge" id="statusBadge">CONECTANDO</span>
+      <span class="status-badge" id="statusBadge">ONLINE</span>
     </header>
 
     <!-- BUSCADOR -->
     <div class="search-container">
       <i class="fas fa-search search-icon"></i>
-      <input type="text" id="searchInput" placeholder="Busca cualquier canción, slowed o edit..." autocomplete="off">
+      <input type="text" id="searchInput" placeholder="Escribe canción, artista o edit slowed..." autocomplete="off">
       <button id="btnSearch" class="btn-search" title="Buscar">
         <i class="fas fa-arrow-right"></i>
       </button>
@@ -39,11 +39,11 @@
       </div>
 
       <div class="track-details">
-        <h2 id="trackTitle">Sin reproducción</h2>
-        <p id="trackArtist">Busca tu música favorita arriba</p>
+        <h2 id="trackTitle">Listo para sonar</h2>
+        <p id="trackArtist">Busca cualquier canción arriba</p>
       </div>
 
-      <!-- BARRA DE PROGRESO -->
+      <!-- BARRA DE TIEMPO -->
       <div class="progress-box" id="progressBox">
         <div class="progress-bar" id="progressBar"></div>
       </div>
@@ -52,44 +52,41 @@
         <span id="totalDuration">0:00</span>
       </div>
 
-      <!-- BOTONES DE CONTROL -->
+      <!-- CONTROLES -->
       <div class="controls-row">
         <button class="btn-ctrl" id="btnPrev" title="Anterior">
           <i class="fas fa-backward-step"></i>
         </button>
-        <button class="btn-play" id="btnPlay" title="Reproducir / Pausa">
+        <button class="btn-play" id="btnPlay" title="Play / Pausa">
           <i class="fas fa-play" id="playIcon"></i>
         </button>
         <button class="btn-ctrl" id="btnNext" title="Siguiente">
           <i class="fas fa-forward-step"></i>
         </button>
-        <!-- BOTÓN SLOWED / SPEED -->
-        <button class="btn-speed" id="btnSpeed" title="Efecto de velocidad">1.0x</button>
+        <button class="btn-speed" id="btnSpeed" title="Efecto Slowed">1.0x</button>
       </div>
     </section>
 
     <!-- RESULTADOS -->
     <section class="results-section">
       <div class="section-title">
-        <span>RESULTADOS EN LÍNEA</span>
+        <span>RESULTADOS EN TIEMPO REAL</span>
       </div>
       <div class="track-list" id="trackList">
         <div class="placeholder-msg">
           <i class="fas fa-headphones"></i>
-          <p>Escribe cualquier tema o versión completa arriba y presiona enter.</p>
+          <p>Escribe cualquier tema o versión completa para escuchar en streaming.</p>
         </div>
       </div>
     </section>
 
   </div>
 
-  <!-- CONTENEDOR OCULTO PARA EL MOTOR DE AUDIO -->
-  <div id="ytContainer" style="position: absolute; left: -9999px; width: 200px; height: 200px; opacity: 0; pointer-events: none;">
+  <!-- CONTENEDOR ACTIVO DEL MOTOR DE AUDIO (Mantiene Android despierto) -->
+  <div style="position: fixed; bottom: 0; right: 0; width: 1px; height: 1px; opacity: 0.01; overflow: hidden; pointer-events: none;">
     <div id="ytPlayer"></div>
   </div>
 
-  <!-- API de YouTube y Script Principal -->
-  <script src="https://www.youtube.com/iframe_api"></script>
   <script src="app.js"></script>
 </body>
 </html>
