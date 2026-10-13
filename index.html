@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Astral Music</title>
   <link rel="manifest" href="manifest.json">
-  <!-- Fuentes: Silkscreen (Pixel retro de ViviMusic) + Plus Jakarta Sans -->
+  <!-- Fuentes: Silkscreen (Pixel retro estilo ViviMusic) + Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
@@ -194,7 +194,7 @@
       margin-top: 4px;
     }
 
-    /* COMMUNITY CARDS (GRUPO DE 3 PISTAS IDÉNTICO A VIVIMUSIC) */
+    /* COMMUNITY CARDS (GRUPO DE 3 PISTAS) */
     .community-cards-flow {
       display: flex;
       gap: 14px;
@@ -230,7 +230,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 5px;
+      padding: 6px;
       border-radius: 8px;
     }
     .mini-track-item:active { background: var(--bg-card-hover); }
@@ -677,11 +677,11 @@
 
   </div>
 
-  <!-- REPRODUCTOR EN SEGUNDO PLANO -->
-  <div style="position: fixed; bottom: 0; right: 0; width: 1px; height: 1px; opacity: 0.01; overflow: hidden; pointer-events: none;">
+  <!-- REPRODUCTOR OFICIAL ACTIVO (OCULTO FUERA DE PANTALLA PARA EVITAR BLOQUEOS EN CHROME) -->
+  <div style="position: absolute; top: -9999px; left: -9999px; width: 300px; height: 200px; pointer-events: none;">
     <div id="ytPlayer"></div>
   </div>
 
-  <script src="app.js?v=vivi_ui"></script>
+  <script src="app.js?v=fix_play_vivi"></script>
 </body>
 </html>
