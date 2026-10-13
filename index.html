@@ -17,13 +17,13 @@
         <i class="fas fa-compact-disc logo-icon"></i>
         <h1>ASTRAL BEATS</h1>
       </div>
-      <span class="status-badge" id="statusBadge">ONLINE</span>
+      <span class="status-badge" id="statusBadge">CONECTANDO</span>
     </header>
 
     <!-- BUSCADOR -->
     <div class="search-container">
       <i class="fas fa-search search-icon"></i>
-      <input type="text" id="searchInput" placeholder="Busca cualquier canción, slowed o edit..." autocomplete="off">
+      <input type="text" id="searchInput" placeholder="Busca canción, artista o slowed..." autocomplete="off">
       <button id="btnSearch" class="btn-search" title="Buscar">
         <i class="fas fa-arrow-right"></i>
       </button>
@@ -40,10 +40,10 @@
 
       <div class="track-details">
         <h2 id="trackTitle">Listo para sonar</h2>
-        <p id="trackArtist">Busca cualquier canción arriba</p>
+        <p id="trackArtist">Busca cualquier música arriba</p>
       </div>
 
-      <!-- BARRA DE TIEMPO -->
+      <!-- BARRA DE PROGRESO -->
       <div class="progress-box" id="progressBox">
         <div class="progress-bar" id="progressBar"></div>
       </div>
@@ -63,28 +63,30 @@
         <button class="btn-ctrl" id="btnNext" title="Siguiente">
           <i class="fas fa-forward-step"></i>
         </button>
-        <button class="btn-speed" id="btnSpeed" title="Efecto Slowed">1.0x</button>
+        <button class="btn-speed" id="btnSpeed" title="Efecto de velocidad">1.0x</button>
       </div>
     </section>
 
-    <!-- RESULTADOS -->
+    <!-- LISTA DE CANCIONES -->
     <section class="results-section">
       <div class="section-title">
-        <span>RESULTADOS EN TIEMPO REAL</span>
+        <span>RESULTADOS EN LÍNEA</span>
       </div>
       <div class="track-list" id="trackList">
         <div class="placeholder-msg">
           <i class="fas fa-headphones"></i>
-          <p>Busca cualquier tema completo o versión slowed.</p>
+          <p>Escribe cualquier tema completo o edit y presiona enter.</p>
         </div>
       </div>
     </section>
 
   </div>
 
-  <!-- ELEMENTO DE AUDIO NATIVO (SIN PUBLICIDAD) -->
-  <audio id="audioPlayer" preload="auto"></audio>
+  <!-- REPRODUCTOR EN SEGUNDO PLANO -->
+  <div style="position: fixed; bottom: 0; right: 0; width: 1px; height: 1px; opacity: 0.01; overflow: hidden; pointer-events: none;">
+    <div id="ytPlayer"></div>
+  </div>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
