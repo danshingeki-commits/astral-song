@@ -1,20 +1,19 @@
 /**
- * ASTRAL BEATS - Motor Oficial de YouTube & Slowed
+ * ASTRAL BEATS - Motor Nativo Sin Anuncios
  */
 
-let player = null;
-let isPlayerReady = false;
-let canciones = [];
-let indiceActual = -1;
-let updateInterval = null;
-
-// Clave oficial configurada
 const YOUTUBE_API_KEY = 'AIzaSyBrrhapuhd8qHryfuvGpaIjunruu7gow8k';
+const BACKEND_URL = 'https://astral-api-xasv.onrender.com';
 
 const velocidades = [1.0, 0.75, 1.25];
 let velocidadIndex = 0;
 
+let canciones = [];
+let indiceActual = -1;
+let cargandoAudio = false;
+
 // Elementos del DOM
+const audioPlayer = document.getElementById('audioPlayer');
 const vinylDisc = document.getElementById('vinylDisc');
 const coverImg = document.getElementById('coverImg');
 const trackTitle = document.getElementById('trackTitle');
@@ -31,56 +30,10 @@ const progressBox = document.getElementById('progressBox');
 const progressBar = document.getElementById('progressBar');
 const currentTimeEl = document.getElementById('currentTime');
 const totalDurationEl = document.getElementById('totalDuration');
-const statusBadge = document.getElementById('statusBadge');
 
-// Carga del reproductor nativo
-function cargarMotorAudio() {
-  const tag = document.createElement('script');
-  tag.src = "https://www.youtube.com/iframe_api";
-  const primerScript = document.getElementsByTagName('script')[0];
-  primerScript.parentNode.insertBefore(tag, primerScript);
-}
-
-window.onYouTubeIframeAPIReady = function() {
-  player = new YT.Player('ytPlayer', {
-    height: '1',
-    width: '1',
-    playerVars: {
-      playsinline: 1,
-      controls: 0,
-      disablekb: 1,
-      fs: 0
-    },
-    events: {
-      onReady: () => {
-        isPlayerReady = true;
-        if (statusBadge) {
-          statusBadge.innerText = 'ONLINE';
-          statusBadge.style.color = '#00f2fe';
-        }
-      },
-      onStateChange: manejarCambioEstado
-    }
-  });
-};
-
-function manejarCambioEstado(event) {
-  if (event.data === YT.PlayerState.PLAYING) {
-    vinylDisc.classList.add('playing');
-    playIcon.className = 'fas fa-pause';
-    iniciarProgreso();
-  } else if (event.data === YT.PlayerState.PAUSED) {
-    vinylDisc.classList.remove('playing');
-    playIcon.className = 'fas fa-play';
-    detenerProgreso();
-  } else if (event.data === YT.PlayerState.ENDED) {
-    vinylDisc.classList.remove('playing');
-    playIcon.className = 'fas fa-play';
-    cancionSiguiente();
-  }
-}
-
-// Búsqueda directa con la API oficial
+// ==========================================
+// BÚSQUEDA RÁPIDA (YouTube Data API v3)
+// ==========================================
 async function buscarMusica() {
   const query = searchInput.value.trim();
   if (!query) return;
@@ -88,7 +41,7 @@ async function buscarMusica() {
   trackList.innerHTML = `
     <div class="placeholder-msg">
       <i class="fas fa-spinner fa-spin"></i>
-      <p>Cargando catálogo en alta fidelidad...</p>
+      <p>Consultando catálogo universal...</p>
     </div>
   `;
 
@@ -111,7 +64,7 @@ async function buscarMusica() {
       trackList.innerHTML = `
         <div class="placeholder-msg">
           <i class="fas fa-circle-exclamation"></i>
-          <p>No se encontraron pistas para "${query}".</p>
+          <p>No se encontraron resultados para "${query}".</p>
         </div>
       `;
       return;
@@ -125,11 +78,11 @@ async function buscarMusica() {
     }));
 
     renderizarLista();
-  } catch (error) {
+  } catch (err) {
     trackList.innerHTML = `
       <div class="placeholder-msg">
         <i class="fas fa-triangle-exclamation"></i>
-        <p>Error de conexión al consultar el catálogo.</p>
+        <p>Error de conexión al buscar música.</p>
       </div>
     `;
   }
@@ -153,44 +106,73 @@ function renderizarLista() {
         <div class="item-title">${cancion.titulo}</div>
         <div class="item-artist">${cancion.artista}</div>
       </div>
-      <i class="fas fa-play item-play-icon"></i>
+      <i class="fas fa-play item-play-icon" id="icon-${idx}"></i>
     `;
     item.onclick = () => reproducirCancion(idx);
     trackList.appendChild(item);
   });
 }
 
-// Controles y velocidad
-function reproducirCancion(indice) {
-  if (!isPlayerReady || indice < 0 || indice >= canciones.length) return;
+// ==========================================
+// REPRODUCCIÓN NATIVA SIN PUBLICIDAD
+// ==========================================
+async function reproducirCancion(indice) {
+  if (indice < 0 || indice >= canciones.length || cargandoAudio) return;
+
   indiceActual = indice;
   const cancion = canciones[indiceActual];
 
   trackTitle.innerText = cancion.titulo;
-  trackArtist.innerText = cancion.artista;
+  trackArtist.innerText = "Extrayendo audio sin anuncios...";
   coverImg.src = cancion.portada;
 
-  player.loadVideoById(cancion.id);
-  player.setPlaybackRate(velocidades[velocidadIndex]);
+  cargandoAudio = true;
+  playIcon.className = 'fas fa-spinner fa-spin';
+
+  try {
+    const res = await fetch(`${BACKEND_URL}/audio/${cancion.id}`);
+    const data = await res.json();
+
+    if (!data.audio_url) {
+      throw new Error("No stream found");
+    }
+
+    audioPlayer.src = data.audio_url;
+    audioPlayer.playbackRate = velocidades[velocidadIndex];
+
+    await audioPlayer.play();
+
+    trackArtist.innerText = cancion.artista;
+    vinylDisc.classList.add('playing');
+    playIcon.className = 'fas fa-pause';
+  } catch (err) {
+    trackArtist.innerText = "Error al cargar pista. Intenta con otra.";
+    playIcon.className = 'fas fa-play';
+    vinylDisc.classList.remove('playing');
+  } finally {
+    cargandoAudio = false;
+  }
 }
 
 function alternarPlayPausa() {
-  if (!isPlayerReady) return;
-  const estado = player.getPlayerState();
+  if (!audioPlayer.src) return;
 
-  if (estado === YT.PlayerState.PLAYING) {
-    player.pauseVideo();
+  if (audioPlayer.paused) {
+    audioPlayer.play();
+    vinylDisc.classList.add('playing');
+    playIcon.className = 'fas fa-pause';
   } else {
-    player.playVideo();
+    audioPlayer.pause();
+    vinylDisc.classList.remove('playing');
+    playIcon.className = 'fas fa-play';
   }
 }
 
 function cambiarVelocidad() {
-  if (!isPlayerReady) return;
   velocidadIndex = (velocidadIndex + 1) % velocidades.length;
   const vel = velocidades[velocidadIndex];
 
-  player.setPlaybackRate(vel);
+  audioPlayer.playbackRate = vel;
 
   if (vel === 0.75) {
     btnSpeed.innerText = '0.75x (Slowed)';
@@ -206,17 +188,19 @@ function cambiarVelocidad() {
 
 function cancionSiguiente() {
   if (canciones.length === 0) return;
-  const siguiente = (indiceActual + 1) % canciones.length;
-  reproducirCancion(siguiente);
+  const sig = (indiceActual + 1) % canciones.length;
+  reproducirCancion(sig);
 }
 
 function cancionAnterior() {
   if (canciones.length === 0) return;
-  const anterior = (indiceActual - 1 + canciones.length) % canciones.length;
-  reproducirCancion(anterior);
+  const ant = (indiceActual - 1 + canciones.length) % canciones.length;
+  reproducirCancion(ant);
 }
 
-// Progreso y tiempo
+// ==========================================
+// TIEMPO Y PROGRESO
+// ==========================================
 function formatearSegundos(seg) {
   if (isNaN(seg) || seg < 0) return "0:00";
   const m = Math.floor(seg / 60);
@@ -224,39 +208,30 @@ function formatearSegundos(seg) {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-function iniciarProgreso() {
-  detenerProgreso();
-  updateInterval = setInterval(() => {
-    if (player && player.getCurrentTime && player.getDuration) {
-      const actual = player.getCurrentTime();
-      const total = player.getDuration();
+audioPlayer.addEventListener('timeupdate', () => {
+  if (audioPlayer.duration) {
+    const porcentaje = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+    progressBar.style.width = `${porcentaje}%`;
+    currentTimeEl.innerText = formatearSegundos(audioPlayer.currentTime);
+    totalDurationEl.innerText = formatearSegundos(audioPlayer.duration);
+  }
+});
 
-      if (total > 0) {
-        const porcentaje = (actual / total) * 100;
-        progressBar.style.width = `${porcentaje}%`;
-        currentTimeEl.innerText = formatearSegundos(actual);
-        totalDurationEl.innerText = formatearSegundos(total);
-      }
-    }
-  }, 500);
-}
-
-function detenerProgreso() {
-  if (updateInterval) clearInterval(updateInterval);
-}
+audioPlayer.addEventListener('ended', () => {
+  cancionSiguiente();
+});
 
 progressBox.onclick = function(e) {
-  if (!isPlayerReady || !player.getDuration) return;
-  const total = player.getDuration();
-  if (total > 0) {
-    const rect = progressBox.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const porcentaje = clickX / rect.width;
-    player.seekTo(porcentaje * total, true);
-  }
+  if (!audioPlayer.duration) return;
+  const rect = progressBox.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const porcentaje = clickX / rect.width;
+  audioPlayer.currentTime = porcentaje * audioPlayer.duration;
 };
 
-// Eventos
+// ==========================================
+// EVENTOS
+// ==========================================
 btnSearch.onclick = buscarMusica;
 searchInput.onkeydown = (e) => {
   if (e.key === 'Enter') {
@@ -268,5 +243,3 @@ btnPlay.onclick = alternarPlayPausa;
 btnNext.onclick = cancionSiguiente;
 btnPrev.onclick = cancionAnterior;
 btnSpeed.onclick = cambiarVelocidad;
-
-cargarMotorAudio();
