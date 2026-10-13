@@ -23,7 +23,7 @@
     <!-- BUSCADOR -->
     <div class="search-container">
       <i class="fas fa-search search-icon"></i>
-      <input type="text" id="searchInput" placeholder="Escribe canción, artista o edit slowed..." autocomplete="off">
+      <input type="text" id="searchInput" placeholder="Busca cualquier canción, slowed o edit..." autocomplete="off">
       <button id="btnSearch" class="btn-search" title="Buscar">
         <i class="fas fa-arrow-right"></i>
       </button>
@@ -75,18 +75,16 @@
       <div class="track-list" id="trackList">
         <div class="placeholder-msg">
           <i class="fas fa-headphones"></i>
-          <p>Escribe cualquier tema o versión completa para escuchar en streaming.</p>
+          <p>Busca cualquier tema completo o versión slowed.</p>
         </div>
       </div>
     </section>
 
   </div>
 
-  <!-- CONTENEDOR ACTIVO DEL MOTOR DE AUDIO (Mantiene Android despierto) -->
-  <div style="position: fixed; bottom: 0; right: 0; width: 1px; height: 1px; opacity: 0.01; overflow: hidden; pointer-events: none;">
-    <div id="ytPlayer"></div>
-  </div>
+  <!-- ELEMENTO DE AUDIO NATIVO (SIN PUBLICIDAD) -->
+  <audio id="audioPlayer" preload="auto"></audio>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
