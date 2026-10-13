@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Astral Beats</title>
-  <!-- Iconos modernos -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -18,13 +17,13 @@
         <i class="fas fa-compact-disc logo-icon"></i>
         <h1>ASTRAL BEATS</h1>
       </div>
-      <span class="status-badge">ONLINE</span>
+      <span class="status-badge" id="statusBadge">CONECTANDO</span>
     </header>
 
-    <!-- BARRA DE BÚSQUEDA -->
+    <!-- BUSCADOR -->
     <div class="search-container">
       <i class="fas fa-search search-icon"></i>
-      <input type="text" id="searchInput" placeholder="Buscar artista o canción..." autocomplete="off">
+      <input type="text" id="searchInput" placeholder="Busca cualquier canción, slowed o edit..." autocomplete="off">
       <button id="btnSearch" class="btn-search" title="Buscar">
         <i class="fas fa-arrow-right"></i>
       </button>
@@ -64,10 +63,12 @@
         <button class="btn-ctrl" id="btnNext" title="Siguiente">
           <i class="fas fa-forward-step"></i>
         </button>
+        <!-- BOTÓN SLOWED / SPEED -->
+        <button class="btn-speed" id="btnSpeed" title="Efecto de velocidad">1.0x</button>
       </div>
     </section>
 
-    <!-- RESULTADOS EN TIEMPO REAL -->
+    <!-- RESULTADOS -->
     <section class="results-section">
       <div class="section-title">
         <span>RESULTADOS EN LÍNEA</span>
@@ -75,17 +76,20 @@
       <div class="track-list" id="trackList">
         <div class="placeholder-msg">
           <i class="fas fa-headphones"></i>
-          <p>Escribe el nombre de una canción o artista para escuchar previews al instante.</p>
+          <p>Escribe cualquier tema o versión completa arriba y presiona enter.</p>
         </div>
       </div>
     </section>
 
   </div>
 
-  <!-- ELEMENTO DE AUDIO NATIVO (Oculto) -->
-  <audio id="audioPlayer"></audio>
+  <!-- CONTENEDOR OCULTO PARA EL MOTOR DE AUDIO -->
+  <div id="ytContainer" style="position: absolute; left: -9999px; width: 200px; height: 200px; opacity: 0; pointer-events: none;">
+    <div id="ytPlayer"></div>
+  </div>
 
-  <!-- Script principal que conectaremos en la siguiente fase -->
+  <!-- API de YouTube y Script Principal -->
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script src="app.js"></script>
 </body>
 </html>
