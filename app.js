@@ -1,5 +1,5 @@
 /**
- * ASTRAL BEATS - Motor de Streaming Completo & Slowed
+ * ASTRAL BEATS - Motor Oficial de YouTube & Slowed
  */
 
 let player = null;
@@ -7,18 +7,12 @@ let isPlayerReady = false;
 let canciones = [];
 let indiceActual = -1;
 let updateInterval = null;
+
+// Clave oficial configurada
 const YOUTUBE_API_KEY = 'AIzaSyBrrhapuhd8qHryfuvGpaIjunruu7gow8k';
 
 const velocidades = [1.0, 0.75, 1.25];
 let velocidadIndex = 0;
-
-// Servidores abiertos de alta velocidad con soporte para navegador
-const SERVIDORES_STREAM = [
-  'https://api.piped.privacydev.net',
-  'https://pipedapi.tokhmi.xyz',
-  'https://piped-api.garudalinux.org',
-  'https://pipedapi.colinslegacy.com'
-];
 
 // Elementos del DOM
 const vinylDisc = document.getElementById('vinylDisc');
@@ -39,9 +33,7 @@ const currentTimeEl = document.getElementById('currentTime');
 const totalDurationEl = document.getElementById('totalDuration');
 const statusBadge = document.getElementById('statusBadge');
 
-// ==========================================
-// CARGA DINÁMICA DE LA API DE REPRODUCCIÓN
-// ==========================================
+// Carga del reproductor nativo
 function cargarMotorAudio() {
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
@@ -88,9 +80,7 @@ function manejarCambioEstado(event) {
   }
 }
 
-// ==========================================
-// BÚSQUEDA ONLINE DE CANCIONES COMPLETAS
-// ==========================================
+// Búsqueda directa con la API oficial
 async function buscarMusica() {
   const query = searchInput.value.trim();
   if (!query) return;
@@ -98,55 +88,57 @@ async function buscarMusica() {
   trackList.innerHTML = `
     <div class="placeholder-msg">
       <i class="fas fa-spinner fa-spin"></i>
-      <p>Buscando en la nube de streaming...</p>
+      <p>Cargando catálogo en alta fidelidad...</p>
     </div>
   `;
 
-  let resultados = null;
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
 
-  for (let servidor of SERVIDORES_STREAM) {
-    try {
-      const url = `${servidor}/search?q=${encodeURIComponent(query)}&filter=videos`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4500);
-
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        const items = data.items || data;
-        if (Array.isArray(items) && items.length > 0) {
-          resultados = items.filter(v => v.url && v.title);
-          if (resultados.length > 0) break;
-        }
-      }
-    } catch (e) {
-      // Si un servidor falla, salta al siguiente de respaldo
+    if (data.error) {
+      trackList.innerHTML = `
+        <div class="placeholder-msg">
+          <i class="fas fa-triangle-exclamation"></i>
+          <p>${data.error.message}</p>
+        </div>
+      `;
+      return;
     }
-  }
 
-  if (!resultados || resultados.length === 0) {
+    if (!data.items || data.items.length === 0) {
+      trackList.innerHTML = `
+        <div class="placeholder-msg">
+          <i class="fas fa-circle-exclamation"></i>
+          <p>No se encontraron pistas para "${query}".</p>
+        </div>
+      `;
+      return;
+    }
+
+    canciones = data.items.map(item => ({
+      id: item.id.videoId,
+      titulo: decodificarTexto(item.snippet.title),
+      artista: decodificarTexto(item.snippet.channelTitle),
+      portada: item.snippet.thumbnails.high ? item.snippet.thumbnails.high.url : item.snippet.thumbnails.default.url
+    }));
+
+    renderizarLista();
+  } catch (error) {
     trackList.innerHTML = `
       <div class="placeholder-msg">
-        <i class="fas fa-circle-exclamation"></i>
-        <p>No se obtuvieron resultados en este momento. Prueba de nuevo en unos segundos.</p>
+        <i class="fas fa-triangle-exclamation"></i>
+        <p>Error de conexión al consultar el catálogo.</p>
       </div>
     `;
-    return;
   }
+}
 
-  canciones = resultados.slice(0, 15).map(item => {
-    const videoId = item.url.replace('/watch?v=', '');
-    return {
-      id: videoId,
-      titulo: item.title,
-      artista: item.uploaderName || "Astral Music",
-      portada: item.thumbnail || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-    };
-  });
-
-  renderizarLista();
+function decodificarTexto(html) {
+  const txt = document.createElement("textarea");
+  txt.innerHTML = html;
+  return txt.value;
 }
 
 function renderizarLista() {
@@ -168,9 +160,7 @@ function renderizarLista() {
   });
 }
 
-// ==========================================
-// CONTROLES DE AUDIO & SLOWED
-// ==========================================
+// Controles y velocidad
 function reproducirCancion(indice) {
   if (!isPlayerReady || indice < 0 || indice >= canciones.length) return;
   indiceActual = indice;
@@ -226,9 +216,7 @@ function cancionAnterior() {
   reproducirCancion(anterior);
 }
 
-// ==========================================
-// BARRA DE TIEMPO Y PROGRESO
-// ==========================================
+// Progreso y tiempo
 function formatearSegundos(seg) {
   if (isNaN(seg) || seg < 0) return "0:00";
   const m = Math.floor(seg / 60);
@@ -268,9 +256,7 @@ progressBox.onclick = function(e) {
   }
 };
 
-// ==========================================
-// EVENTOS
-// ==========================================
+// Eventos
 btnSearch.onclick = buscarMusica;
 searchInput.onkeydown = (e) => {
   if (e.key === 'Enter') {
@@ -283,5 +269,4 @@ btnNext.onclick = cancionSiguiente;
 btnPrev.onclick = cancionAnterior;
 btnSpeed.onclick = cambiarVelocidad;
 
-// Inicia el motor
 cargarMotorAudio();
