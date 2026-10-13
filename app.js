@@ -1,8 +1,8 @@
 /**
- * ASTRAL BEATS - Motor de Música Completa & Slowed
+ * ASTRAL BEATS - Motor de Streaming Completo & Slowed
  */
 
-let player;
+let player = null;
 let isPlayerReady = false;
 let canciones = [];
 let indiceActual = -1;
@@ -11,15 +11,15 @@ let updateInterval = null;
 const velocidades = [1.0, 0.75, 1.25];
 let velocidadIndex = 0;
 
-// Servidores espejo para búsqueda sin límites
-const INSTANCIAS_BUSQUEDA = [
-  'https://inv.nadeko.net',
-  'https://invidious.nerdvpn.de',
-  'https://invidious.jing.rocks',
-  'https://yt.artemislena.eu'
+// Servidores abiertos de alta velocidad con soporte para navegador
+const SERVIDORES_STREAM = [
+  'https://api.piped.privacydev.net',
+  'https://pipedapi.tokhmi.xyz',
+  'https://piped-api.garudalinux.org',
+  'https://pipedapi.colinslegacy.com'
 ];
 
-// Elementos de la interfaz
+// Elementos del DOM
 const vinylDisc = document.getElementById('vinylDisc');
 const coverImg = document.getElementById('coverImg');
 const trackTitle = document.getElementById('trackTitle');
@@ -39,12 +39,19 @@ const totalDurationEl = document.getElementById('totalDuration');
 const statusBadge = document.getElementById('statusBadge');
 
 // ==========================================
-// INICIALIZACIÓN DE LA API DE AUDIO
+// CARGA DINÁMICA DE LA API DE REPRODUCCIÓN
 // ==========================================
+function cargarMotorAudio() {
+  const tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  const primerScript = document.getElementsByTagName('script')[0];
+  primerScript.parentNode.insertBefore(tag, primerScript);
+}
+
 window.onYouTubeIframeAPIReady = function() {
   player = new YT.Player('ytPlayer', {
-    height: '200',
-    width: '200',
+    height: '1',
+    width: '1',
     playerVars: {
       playsinline: 1,
       controls: 0,
@@ -52,29 +59,27 @@ window.onYouTubeIframeAPIReady = function() {
       fs: 0
     },
     events: {
-      onReady: onPlayerReady,
-      onStateChange: onPlayerStateChange
+      onReady: () => {
+        isPlayerReady = true;
+        if (statusBadge) {
+          statusBadge.innerText = 'ONLINE';
+          statusBadge.style.color = '#00f2fe';
+        }
+      },
+      onStateChange: manejarCambioEstado
     }
   });
 };
 
-function onPlayerReady() {
-  isPlayerReady = true;
-  if (statusBadge) {
-    statusBadge.innerText = 'ONLINE';
-    statusBadge.style.color = '#00f2fe';
-  }
-}
-
-function onPlayerStateChange(event) {
+function manejarCambioEstado(event) {
   if (event.data === YT.PlayerState.PLAYING) {
     vinylDisc.classList.add('playing');
     playIcon.className = 'fas fa-pause';
-    iniciarSeguimientoProgreso();
+    iniciarProgreso();
   } else if (event.data === YT.PlayerState.PAUSED) {
     vinylDisc.classList.remove('playing');
     playIcon.className = 'fas fa-play';
-    detenerSeguimientoProgreso();
+    detenerProgreso();
   } else if (event.data === YT.PlayerState.ENDED) {
     vinylDisc.classList.remove('playing');
     playIcon.className = 'fas fa-play';
@@ -83,7 +88,7 @@ function onPlayerStateChange(event) {
 }
 
 // ==========================================
-// BÚSQUEDA UNIVERSAL (Canciones Completas)
+// BÚSQUEDA ONLINE DE CANCIONES COMPLETAS
 // ==========================================
 async function buscarMusica() {
   const query = searchInput.value.trim();
@@ -92,30 +97,31 @@ async function buscarMusica() {
   trackList.innerHTML = `
     <div class="placeholder-msg">
       <i class="fas fa-spinner fa-spin"></i>
-      <p>Buscando versión completa en la nube...</p>
+      <p>Buscando en la nube de streaming...</p>
     </div>
   `;
 
   let resultados = null;
 
-  for (let base of INSTANCIAS_BUSQUEDA) {
+  for (let servidor of SERVIDORES_STREAM) {
     try {
-      const url = `${base}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
+      const url = `${servidor}/search?q=${encodeURIComponent(query)}&filter=videos`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
 
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          resultados = data;
-          break;
+        const items = data.items || data;
+        if (Array.isArray(items) && items.length > 0) {
+          resultados = items.filter(v => v.url && v.title);
+          if (resultados.length > 0) break;
         }
       }
     } catch (e) {
-      // Intenta con el siguiente servidor en caso de error o demora
+      // Si un servidor falla, salta al siguiente de respaldo
     }
   }
 
@@ -123,18 +129,21 @@ async function buscarMusica() {
     trackList.innerHTML = `
       <div class="placeholder-msg">
         <i class="fas fa-circle-exclamation"></i>
-        <p>No se encontraron resultados o los servidores están ocupados. Intenta de nuevo.</p>
+        <p>No se obtuvieron resultados en este momento. Prueba de nuevo en unos segundos.</p>
       </div>
     `;
     return;
   }
 
-  canciones = resultados.map(item => ({
-    id: item.videoId,
-    titulo: item.title,
-    artista: item.author || "Astral Music",
-    portada: `https://img.youtube.com/vi/${item.videoId}/hqdefault.jpg`
-  }));
+  canciones = resultados.slice(0, 15).map(item => {
+    const videoId = item.url.replace('/watch?v=', '');
+    return {
+      id: videoId,
+      titulo: item.title,
+      artista: item.uploaderName || "Astral Music",
+      portada: item.thumbnail || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    };
+  });
 
   renderizarLista();
 }
@@ -153,13 +162,13 @@ function renderizarLista() {
       </div>
       <i class="fas fa-play item-play-icon"></i>
     `;
-    item.addEventListener('click', () => reproducirCancion(idx));
+    item.onclick = () => reproducirCancion(idx);
     trackList.appendChild(item);
   });
 }
 
 // ==========================================
-// REPRODUCCIÓN & VELOCIDAD SLOWED
+// CONTROLES DE AUDIO & SLOWED
 // ==========================================
 function reproducirCancion(indice) {
   if (!isPlayerReady || indice < 0 || indice >= canciones.length) return;
@@ -188,14 +197,14 @@ function alternarPlayPausa() {
 function cambiarVelocidad() {
   if (!isPlayerReady) return;
   velocidadIndex = (velocidadIndex + 1) % velocidades.length;
-  const nuevaVelocidad = velocidades[velocidadIndex];
+  const vel = velocidades[velocidadIndex];
 
-  player.setPlaybackRate(nuevaVelocidad);
+  player.setPlaybackRate(vel);
 
-  if (nuevaVelocidad === 0.75) {
+  if (vel === 0.75) {
     btnSpeed.innerText = '0.75x (Slowed)';
     btnSpeed.style.color = '#ec4899';
-  } else if (nuevaVelocidad === 1.25) {
+  } else if (vel === 1.25) {
     btnSpeed.innerText = '1.25x (Fast)';
     btnSpeed.style.color = '#a855f7';
   } else {
@@ -226,8 +235,8 @@ function formatearSegundos(seg) {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-function iniciarSeguimientoProgreso() {
-  detenerSeguimientoProgreso();
+function iniciarProgreso() {
+  detenerProgreso();
   updateInterval = setInterval(() => {
     if (player && player.getCurrentTime && player.getDuration) {
       const actual = player.getCurrentTime();
@@ -243,11 +252,11 @@ function iniciarSeguimientoProgreso() {
   }, 500);
 }
 
-function detenerSeguimientoProgreso() {
+function detenerProgreso() {
   if (updateInterval) clearInterval(updateInterval);
 }
 
-progressBox.addEventListener('click', (e) => {
+progressBox.onclick = function(e) {
   if (!isPlayerReady || !player.getDuration) return;
   const total = player.getDuration();
   if (total > 0) {
@@ -256,21 +265,22 @@ progressBox.addEventListener('click', (e) => {
     const porcentaje = clickX / rect.width;
     player.seekTo(porcentaje * total, true);
   }
-});
+};
 
 // ==========================================
-// EVENTOS DE ENTRADA
+// EVENTOS
 // ==========================================
-btnSearch.addEventListener('click', buscarMusica);
-
-searchInput.addEventListener('keydown', (e) => {
+btnSearch.onclick = buscarMusica;
+searchInput.onkeydown = (e) => {
   if (e.key === 'Enter') {
     buscarMusica();
     searchInput.blur();
   }
-});
+};
+btnPlay.onclick = alternarPlayPausa;
+btnNext.onclick = cancionSiguiente;
+btnPrev.onclick = cancionAnterior;
+btnSpeed.onclick = cambiarVelocidad;
 
-btnPlay.addEventListener('click', alternarPlayPausa);
-btnNext.addEventListener('click', cancionSiguiente);
-btnPrev.addEventListener('click', cancionAnterior);
-btnSpeed.addEventListener('click', cambiarVelocidad);
+// Inicia el motor
+cargarMotorAudio();
