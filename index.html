@@ -4,14 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Astral Beats</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
 </head>
 <body>
 
   <div class="app-wrapper">
 
-    <!-- ENCABEZADO -->
     <header class="app-header">
       <div class="brand">
         <i class="fas fa-compact-disc logo-icon"></i>
@@ -20,7 +25,6 @@
       <span class="status-badge" id="statusBadge">CONECTANDO</span>
     </header>
 
-    <!-- BUSCADOR -->
     <div class="search-container">
       <i class="fas fa-search search-icon"></i>
       <input type="text" id="searchInput" placeholder="Busca canción, artista o slowed..." autocomplete="off">
@@ -29,7 +33,6 @@
       </button>
     </div>
 
-    <!-- REPRODUCTOR / VINILO -->
     <section class="player-card">
       <div class="vinyl-wrapper">
         <div class="vinyl-disc" id="vinylDisc">
@@ -43,7 +46,6 @@
         <p id="trackArtist">Busca cualquier música arriba</p>
       </div>
 
-      <!-- BARRA DE PROGRESO -->
       <div class="progress-box" id="progressBox">
         <div class="progress-bar" id="progressBar"></div>
       </div>
@@ -52,7 +54,6 @@
         <span id="totalDuration">0:00</span>
       </div>
 
-      <!-- CONTROLES -->
       <div class="controls-row">
         <button class="btn-ctrl" id="btnPrev" title="Anterior">
           <i class="fas fa-backward-step"></i>
@@ -67,7 +68,6 @@
       </div>
     </section>
 
-    <!-- LISTA DE CANCIONES -->
     <section class="results-section">
       <div class="section-title">
         <span>RESULTADOS EN LÍNEA</span>
@@ -82,11 +82,10 @@
 
   </div>
 
-  <!-- REPRODUCTOR EN SEGUNDO PLANO -->
   <div style="position: fixed; bottom: 0; right: 0; width: 1px; height: 1px; opacity: 0.01; overflow: hidden; pointer-events: none;">
     <div id="ytPlayer"></div>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
