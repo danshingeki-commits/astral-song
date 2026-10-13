@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Astral Beats</title>
+  <!-- Iconos modernos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-wrapper">
+
+    <!-- ENCABEZADO -->
+    <header class="app-header">
+      <div class="brand">
+        <i class="fas fa-compact-disc logo-icon"></i>
+        <h1>ASTRAL BEATS</h1>
+      </div>
+      <span class="status-badge">ONLINE</span>
+    </header>
+
+    <!-- BARRA DE BÚSQUEDA -->
+    <div class="search-container">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" id="searchInput" placeholder="Buscar artista o canción..." autocomplete="off">
+      <button id="btnSearch" class="btn-search" title="Buscar">
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <!-- REPRODUCTOR / VINILO -->
+    <section class="player-card">
+      <div class="vinyl-wrapper">
+        <div class="vinyl-disc" id="vinylDisc">
+          <img id="coverImg" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80" alt="Carátula">
+          <div class="vinyl-center-hole"></div>
+        </div>
+      </div>
+
+      <div class="track-details">
+        <h2 id="trackTitle">Sin reproducción</h2>
+        <p id="trackArtist">Busca tu música favorita arriba</p>
+      </div>
+
+      <!-- BARRA DE PROGRESO -->
+      <div class="progress-box" id="progressBox">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="time-row">
+        <span id="currentTime">0:00</span>
+        <span id="totalDuration">0:00</span>
+      </div>
+
+      <!-- BOTONES DE CONTROL -->
+      <div class="controls-row">
+        <button class="btn-ctrl" id="btnPrev" title="Anterior">
+          <i class="fas fa-backward-step"></i>
+        </button>
+        <button class="btn-play" id="btnPlay" title="Reproducir / Pausa">
+          <i class="fas fa-play" id="playIcon"></i>
+        </button>
+        <button class="btn-ctrl" id="btnNext" title="Siguiente">
+          <i class="fas fa-forward-step"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- RESULTADOS EN TIEMPO REAL -->
+    <section class="results-section">
+      <div class="section-title">
+        <span>RESULTADOS EN LÍNEA</span>
+      </div>
+      <div class="track-list" id="trackList">
+        <div class="placeholder-msg">
+          <i class="fas fa-headphones"></i>
+          <p>Escribe el nombre de una canción o artista para escuchar previews al instante.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ELEMENTO DE AUDIO NATIVO (Oculto) -->
+  <audio id="audioPlayer"></audio>
+
+  <!-- Script principal que conectaremos en la siguiente fase -->
+  <script src="app.js"></script>
+</body>
+</html>
