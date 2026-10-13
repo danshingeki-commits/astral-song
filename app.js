@@ -1,5 +1,5 @@
 /**
- * ASTRAL BEATS - Spotify & ViMusic Engine
+ * ASTRAL BEATS - Motor ViviMusic & Agrupador de Pistas
  */
 
 const YOUTUBE_API_KEY = 'AIzaSyBrrhapuhd8qHryfuvGpaIjunruu7gow8k';
@@ -9,25 +9,23 @@ let isPlayerReady = false;
 let currentPlaylist = [];
 let currentIndex = -1;
 let historyTracks = [];
-let updateInterval = null;
+let progressTimer = null;
 
 const speeds = [1.0, 0.75, 1.25];
-let speedIndex = 0;
+let speedIdx = 0;
 
-// Elementos UI
-const viewHome = document.getElementById('viewHome');
-const viewSearch = document.getElementById('viewSearch');
-const viewLibrary = document.getElementById('viewLibrary');
-const navTabs = document.querySelectorAll('.nav-tab');
+// Elementos
+const tabHome = document.getElementById('tabHome');
+const tabSearch = document.getElementById('tabSearch');
+const tabLibrary = document.getElementById('tabLibrary');
+const navButtons = document.querySelectorAll('.nav-button');
 
-const quickPicks = document.getElementById('quickPicks');
-const trendingPicks = document.getElementById('trendingPicks');
+const heroList = document.getElementById('heroList');
+const communityList = document.getElementById('communityList');
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
 const libraryList = document.getElementById('libraryList');
-const btnClearSearch = document.getElementById('btnClearSearch');
 
-const miniPlayer = document.getElementById('miniPlayer');
 const miniCover = document.getElementById('miniCover');
 const miniTitle = document.getElementById('miniTitle');
 const miniArtist = document.getElementById('miniArtist');
@@ -36,8 +34,8 @@ const btnPlayMini = document.getElementById('btnPlayMini');
 const miniProgressBar = document.getElementById('miniProgressBar');
 
 const fullPlayer = document.getElementById('fullPlayer');
-const openFullPlayerTrigger = document.getElementById('openFullPlayerTrigger');
-const btnClosePlayer = document.getElementById('btnClosePlayer');
+const triggerFullPlayer = document.getElementById('triggerFullPlayer');
+const btnCloseFull = document.getElementById('btnCloseFull');
 const fullCover = document.getElementById('fullCover');
 const fullTitle = document.getElementById('fullTitle');
 const fullArtist = document.getElementById('fullArtist');
@@ -51,15 +49,8 @@ const fullProgressBox = document.getElementById('fullProgressBox');
 const currentTimeEl = document.getElementById('currentTime');
 const totalDurationEl = document.getElementById('totalDuration');
 
-// Saludo dinámico (Buenos días / tardes / noches)
-const hour = new Date().getHours();
-const greetingEl = document.getElementById('greetingText');
-if (greetingEl) {
-  greetingEl.innerText = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches';
-}
-
-// 1. CARGA INICIAL DEL REPRODUCTOR YOUTUBE
-function inicializarMotor() {
+// Carga de API
+function initEngine() {
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
   document.head.appendChild(tag);
@@ -67,95 +58,138 @@ function inicializarMotor() {
 
 window.onYouTubeIframeAPIReady = function() {
   player = new YT.Player('ytPlayer', {
-    height: '1',
-    width: '1',
+    height: '1', width: '1',
     playerVars: { playsinline: 1, controls: 0, disablekb: 1, fs: 0 },
     events: {
       onReady: () => {
         isPlayerReady = true;
-        cargarFeed('Phonk slowed');
+        filtrarCategoria('Entrenamiento');
       },
-      onStateChange: manejarEstado
+      onStateChange: handleState
     }
   });
 };
 
-function manejarEstado(event) {
-  if (event.data === YT.PlayerState.PLAYING) {
+function handleState(e) {
+  if (e.data === YT.PlayerState.PLAYING) {
     miniPlayIcon.className = 'fas fa-pause';
     fullPlayIcon.className = 'fas fa-pause';
-    iniciarProgreso();
-  } else if (event.data === YT.PlayerState.PAUSED) {
+    startTimer();
+  } else if (e.data === YT.PlayerState.PAUSED) {
     miniPlayIcon.className = 'fas fa-play';
     fullPlayIcon.className = 'fas fa-play';
-    detenerProgreso();
-  } else if (event.data === YT.PlayerState.ENDED) {
-    siguientePista();
+    stopTimer();
+  } else if (e.data === YT.PlayerState.ENDED) {
+    nextTrack();
   }
 }
 
-// 2. PETICIONES A YOUTUBE API
-async function buscarEnApi(query, max = 10) {
+// Búsqueda en API
+async function apiSearch(query, max = 9) {
   try {
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${max}&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`;
     const res = await fetch(url);
     const data = await res.json();
     if (!data.items) return [];
 
-    return data.items.map(i => ({
-      id: i.id.videoId,
-      title: decodificar(i.snippet.title),
-      artist: decodificar(i.snippet.channelTitle),
-      cover: i.snippet.thumbnails.high ? i.snippet.thumbnails.high.url : i.snippet.thumbnails.default.url
+    return data.items.map(item => ({
+      id: item.id.videoId,
+      title: decodeText(item.snippet.title),
+      artist: decodeText(item.snippet.channelTitle),
+      cover: item.snippet.thumbnails.high ? item.snippet.thumbnails.high.url : item.snippet.thumbnails.default.url
     }));
   } catch {
     return [];
   }
 }
 
-function decodificar(str) {
+function decodeText(str) {
   const t = document.createElement('textarea');
   t.innerHTML = str;
   return t.value;
 }
 
-// 3. INICIO: CARGA AUTOMÁTICA DE CONTENIDO
-async function cargarFeed(categoria) {
-  quickPicks.innerHTML = '<div class="loader-item"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
-  
-  const tracks = await buscarEnApi(categoria, 6);
-  quickPicks.innerHTML = '';
-  
-  tracks.forEach(track => {
-    const card = document.createElement('div');
-    card.className = 'feed-card';
-    card.innerHTML = `
-      <img src="${track.cover}" alt="Art">
-      <div class="card-title">${track.title}</div>
-      <div class="card-sub">${track.artist}</div>
-    `;
-    card.onclick = () => reproducir(track, tracks);
-    quickPicks.appendChild(card);
+// Carga del feed estilo ViviMusic
+async function filtrarCategoria(cat) {
+  document.querySelectorAll('.vivi-chip').forEach(c => {
+    c.classList.toggle('active', c.innerText.toLowerCase().includes(cat.toLowerCase()));
   });
 
-  const trends = await buscarEnApi('Latin Trap slowed', 6);
-  trendingPicks.innerHTML = '';
-  trends.forEach(track => {
+  heroList.innerHTML = '<div class="empty-pixel-msg">Cargando destacados...</div>';
+  communityList.innerHTML = '<div class="empty-pixel-msg">Cargando comunidad...</div>';
+
+  const tracks = await apiSearch(cat + ' music', 9);
+
+  // 1. Hero Carousel (Daily Discover)
+  heroList.innerHTML = '';
+  tracks.slice(0, 3).forEach(track => {
     const card = document.createElement('div');
-    card.className = 'h-card';
+    card.className = 'hero-card';
     card.innerHTML = `
       <img src="${track.cover}" alt="Art">
-      <div class="card-title" style="margin-top:6px">${track.title}</div>
+      <div class="hero-meta">
+        <div class="hero-title">${track.title}</div>
+        <div class="hero-sub">${track.artist}</div>
+      </div>
     `;
-    card.onclick = () => reproducir(track, trends);
-    trendingPicks.appendChild(card);
+    card.onclick = () => playTrack(track, tracks);
+    heroList.appendChild(card);
+  });
+
+  // 2. Community Groups (Tarjetas de 3 canciones como ViviMusic)
+  communityList.innerHTML = '';
+  const grupo1 = tracks.slice(0, 3);
+  const grupo2 = tracks.slice(3, 6);
+
+  [ { title: `${cat} Top Hits`, tracks: grupo1 }, { title: 'Mix Recomendado', tracks: grupo2 } ].forEach(group => {
+    if (group.tracks.length === 0) return;
+
+    const card = document.createElement('div');
+    card.className = 'grouped-card';
+
+    let htmlTracks = '';
+    group.tracks.forEach(t => {
+      htmlTracks += `
+        <div class="mini-track-item" onclick="event.stopPropagation(); playTrackById('${t.id}')">
+          <img src="${t.cover}" alt="Art">
+          <div class="mini-track-info">
+            <div class="mini-track-title">${t.title}</div>
+            <div class="mini-track-artist">${t.artist}</div>
+          </div>
+        </div>
+      `;
+    });
+
+    card.innerHTML = `
+      <div class="grouped-card-header">
+        <h3>${group.title}</h3>
+        <span>ViviMusic Community</span>
+      </div>
+      ${htmlTracks}
+      <div class="grouped-card-actions">
+        <button class="btn-vivi-play" onclick="playPlaylist(${JSON.stringify(group.tracks).replace(/"/g, '&quot;')})">
+          <i class="fas fa-play"></i> Play
+        </button>
+        <button class="btn-circle-action"><i class="fas fa-tower-broadcast"></i></button>
+        <button class="btn-circle-action"><i class="fas fa-list-ul"></i></button>
+      </div>
+    `;
+    communityList.appendChild(card);
   });
 }
 
-// 4. CONTROL DE REPRODUCCIÓN
-function reproducir(track, lista) {
+window.playPlaylist = (list) => {
+  if (list && list.length > 0) playTrack(list[0], list);
+};
+
+window.playTrackById = async (id) => {
+  const track = currentPlaylist.find(t => t.id === id);
+  if (track) playTrack(track, currentPlaylist);
+};
+
+function playTrack(track, list) {
   if (!isPlayerReady) return;
-  currentPlaylist = lista || [track];
+  currentPlaylist = list || [track];
   currentIndex = currentPlaylist.findIndex(t => t.id === track.id);
 
   miniTitle.innerText = track.title;
@@ -167,56 +201,52 @@ function reproducir(track, lista) {
   fullCover.src = track.cover;
 
   player.loadVideoById(track.id);
-  player.setPlaybackRate(speeds[speedIndex]);
+  player.setPlaybackRate(speeds[speedIdx]);
 
-  // Guardar en biblioteca/historial sin duplicados inmediatos
   if (!historyTracks.some(t => t.id === track.id)) {
     historyTracks.unshift(track);
-    actualizarBiblioteca();
+    renderLibrary();
   }
 }
 
-function alternarPlay() {
+function togglePlay() {
   if (!isPlayerReady) return;
   const s = player.getPlayerState();
-  if (s === YT.PlayerState.PLAYING) {
-    player.pauseVideo();
-  } else {
-    player.playVideo();
-  }
+  if (s === YT.PlayerState.PLAYING) player.pauseVideo();
+  else player.playVideo();
 }
 
-function siguientePista() {
+function nextTrack() {
   if (currentPlaylist.length === 0) return;
   currentIndex = (currentIndex + 1) % currentPlaylist.length;
-  reproducir(currentPlaylist[currentIndex], currentPlaylist);
+  playTrack(currentPlaylist[currentIndex], currentPlaylist);
 }
 
-function anteriorPista() {
+function prevTrack() {
   if (currentPlaylist.length === 0) return;
   currentIndex = (currentIndex - 1 + currentPlaylist.length) % currentPlaylist.length;
-  reproducir(currentPlaylist[currentIndex], currentPlaylist);
+  playTrack(currentPlaylist[currentIndex], currentPlaylist);
 }
 
-function cambiarVelocidad() {
+function cycleSpeed() {
   if (!isPlayerReady) return;
-  speedIndex = (speedIndex + 1) % speeds.length;
-  const vel = speeds[speedIndex];
-  player.setPlaybackRate(vel);
-  btnSpeed.innerText = vel === 0.75 ? '0.75x (Slowed)' : `${vel}x`;
+  speedIdx = (speedIdx + 1) % speeds.length;
+  const spd = speeds[speedIdx];
+  player.setPlaybackRate(spd);
+  btnSpeed.innerText = spd === 0.75 ? '0.75x' : `${spd}x`;
 }
 
-// 5. BARRA DE TIEMPO
-function formatear(s) {
-  if (isNaN(s)) return "0:00";
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+// Tiempo
+function fmt(sec) {
+  if (isNaN(sec)) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-function iniciarProgreso() {
-  detenerProgreso();
-  updateInterval = setInterval(() => {
+function startTimer() {
+  stopTimer();
+  progressTimer = setInterval(() => {
     if (player && player.getCurrentTime) {
       const cur = player.getCurrentTime();
       const dur = player.getDuration();
@@ -224,102 +254,89 @@ function iniciarProgreso() {
         const pct = (cur / dur) * 100;
         miniProgressBar.style.width = `${pct}%`;
         fullProgressBar.style.width = `${pct}%`;
-        currentTimeEl.innerText = formatear(cur);
-        totalDurationEl.innerText = formatear(dur);
+        currentTimeEl.innerText = fmt(cur);
+        totalDurationEl.innerText = fmt(dur);
       }
     }
   }, 500);
 }
 
-function detenerProgreso() {
-  if (updateInterval) clearInterval(updateInterval);
+function stopTimer() {
+  if (progressTimer) clearInterval(progressTimer);
 }
 
 fullProgressBox.onclick = (e) => {
   if (!player || !player.getDuration) return;
   const rect = fullProgressBox.getBoundingClientRect();
-  const clickX = e.clientX - rect.left;
-  const seekTime = (clickX / rect.width) * player.getDuration();
-  player.seekTo(seekTime, true);
+  const seek = ((e.clientX - rect.left) / rect.width) * player.getDuration();
+  player.seekTo(seek, true);
 };
 
-// 6. BUSCADOR
-let timerDebounce = null;
+// Buscador
+let searchDebounce = null;
 searchInput.oninput = () => {
   const q = searchInput.value.trim();
-  btnClearSearch.style.display = q ? 'block' : 'none';
-  clearTimeout(timerDebounce);
+  clearTimeout(searchDebounce);
   if (!q) {
-    searchResults.innerHTML = '<div class="empty-state"><i class="fas fa-magnifying-glass"></i><p>Escribe algo para buscar</p></div>';
+    searchResults.innerHTML = '<div class="empty-pixel-msg">Escribe arriba para explorar</div>';
     return;
   }
-  timerDebounce = setTimeout(async () => {
-    const res = await buscarEnApi(q, 15);
-    renderizarResultados(res);
-  }, 400);
+  searchDebounce = setTimeout(async () => {
+    const list = await apiSearch(q, 15);
+    searchResults.innerHTML = '';
+    list.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'search-row';
+      row.innerHTML = `
+        <img src="${t.cover}" alt="Art">
+        <div style="flex:1;min-width:0;">
+          <div class="search-row-title">${t.title}</div>
+          <div class="search-row-artist">${t.artist}</div>
+        </div>
+        <i class="fas fa-play" style="color:var(--accent-blue);font-size:0.85rem;"></i>
+      `;
+      row.onclick = () => playTrack(t, list);
+      searchResults.appendChild(row);
+    });
+  }, 450);
 };
 
-btnClearSearch.onclick = () => {
-  searchInput.value = '';
-  btnClearSearch.style.display = 'none';
-  searchResults.innerHTML = '';
-};
-
-function renderizarResultados(items) {
-  searchResults.innerHTML = '';
-  items.forEach(track => {
-    const row = document.createElement('div');
-    row.className = 'track-row';
-    row.innerHTML = `
-      <img src="${track.cover}" alt="art">
-      <div class="track-meta">
-        <div class="title">${track.title}</div>
-        <div class="artist">${track.artist}</div>
-      </div>
-      <i class="fas fa-play" style="color:#1db954; font-size: 0.9rem;"></i>
-    `;
-    row.onclick = () => reproducir(track, items);
-    searchResults.appendChild(row);
-  });
-}
-
-function actualizarBiblioteca() {
+function renderLibrary() {
   libraryList.innerHTML = '';
-  historyTracks.forEach(track => {
+  historyTracks.forEach(t => {
     const row = document.createElement('div');
-    row.className = 'track-row';
+    row.className = 'search-row';
     row.innerHTML = `
-      <img src="${track.cover}" alt="art">
-      <div class="track-meta">
-        <div class="title">${track.title}</div>
-        <div class="artist">${track.artist}</div>
+      <img src="${t.cover}" alt="Art">
+      <div style="flex:1;min-width:0;">
+        <div class="search-row-title">${t.title}</div>
+        <div class="search-row-artist">${t.artist}</div>
       </div>
     `;
-    row.onclick = () => reproducir(track, historyTracks);
+    row.onclick = () => playTrack(t, historyTracks);
     libraryList.appendChild(row);
   });
 }
 
-// 7. EVENTOS DE NAVEGACIÓN Y VISTAS
-navTabs.forEach(tab => {
-  tab.onclick = () => {
-    navTabs.forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    
+// Navegación de Pestañas
+navButtons.forEach(btn => {
+  btn.onclick = () => {
+    navButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    const target = document.getElementById(tab.getAttribute('data-view'));
-    if (target) target.classList.add('active');
+    const tab = document.getElementById(btn.getAttribute('data-tab'));
+    if (tab) tab.classList.add('active');
   };
 });
 
-// Mini Player & Full Player toggles
-openFullPlayerTrigger.onclick = () => fullPlayer.classList.add('open');
-btnClosePlayer.onclick = () => fullPlayer.classList.remove('open');
+// Eventos
+triggerFullPlayer.onclick = () => fullPlayer.classList.add('open');
+btnCloseFull.onclick = () => fullPlayer.classList.remove('open');
+btnPlayMini.onclick = (e) => { e.stopPropagation(); togglePlay(); };
+btnPlayFull.onclick = togglePlay;
+btnNext.onclick = nextTrack;
+btnPrev.onclick = prevTrack;
+btnSpeed.onclick = cycleSpeed;
 
-btnPlayMini.onclick = (e) => { e.stopPropagation(); alternarPlay(); };
-btnPlayFull.onclick = alternarPlay;
-btnNext.onclick = siguientePista;
-btnPrev.onclick = anteriorPista;
-btnSpeed.onclick = cambiarVelocidad;
-
-inicializarMotor();
+initEngine();
