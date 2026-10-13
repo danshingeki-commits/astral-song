@@ -7,6 +7,7 @@ let isPlayerReady = false;
 let canciones = [];
 let indiceActual = -1;
 let updateInterval = null;
+const YOUTUBE_API_KEY = 'AIzaSyBrrhapuhd8qHryfuvGpaIjunruu7gow8k';
 
 const velocidades = [1.0, 0.75, 1.25];
 let velocidadIndex = 0;
