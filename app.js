@@ -1,5 +1,5 @@
 /**
- * ASTRAL BEATS - Motor ViviMusic & Agrupador de Pistas
+ * ASTRAL BEATS - Motor ViviMusic Reparado (Play Instantáneo)
  */
 
 const YOUTUBE_API_KEY = 'AIzaSyBrrhapuhd8qHryfuvGpaIjunruu7gow8k';
@@ -10,11 +10,12 @@ let currentPlaylist = [];
 let currentIndex = -1;
 let historyTracks = [];
 let progressTimer = null;
+let tracksCache = new Map(); // Guarda las canciones en memoria para evitar errores de comillas
 
 const speeds = [1.0, 0.75, 1.25];
 let speedIdx = 0;
 
-// Elementos
+// Elementos UI
 const tabHome = document.getElementById('tabHome');
 const tabSearch = document.getElementById('tabSearch');
 const tabLibrary = document.getElementById('tabLibrary');
@@ -49,7 +50,7 @@ const fullProgressBox = document.getElementById('fullProgressBox');
 const currentTimeEl = document.getElementById('currentTime');
 const totalDurationEl = document.getElementById('totalDuration');
 
-// Carga de API
+// Cargar la API de YouTube
 function initEngine() {
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
@@ -58,8 +59,15 @@ function initEngine() {
 
 window.onYouTubeIframeAPIReady = function() {
   player = new YT.Player('ytPlayer', {
-    height: '1', width: '1',
-    playerVars: { playsinline: 1, controls: 0, disablekb: 1, fs: 0 },
+    height: '200',
+    width: '300',
+    playerVars: {
+      playsinline: 1,
+      controls: 0,
+      disablekb: 1,
+      fs: 0,
+      origin: window.location.origin
+    },
     events: {
       onReady: () => {
         isPlayerReady = true;
@@ -75,6 +83,9 @@ function handleState(e) {
     miniPlayIcon.className = 'fas fa-pause';
     fullPlayIcon.className = 'fas fa-pause';
     startTimer();
+    try {
+      player.setPlaybackRate(speeds[speedIdx]);
+    } catch (err) {}
   } else if (e.data === YT.PlayerState.PAUSED) {
     miniPlayIcon.className = 'fas fa-play';
     fullPlayIcon.className = 'fas fa-play';
@@ -84,7 +95,7 @@ function handleState(e) {
   }
 }
 
-// Búsqueda en API
+// Búsqueda en YouTube API
 async function apiSearch(query, max = 9) {
   try {
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${max}&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`;
@@ -92,13 +103,17 @@ async function apiSearch(query, max = 9) {
     const data = await res.json();
     if (!data.items) return [];
 
-    return data.items.map(item => ({
-      id: item.id.videoId,
-      title: decodeText(item.snippet.title),
-      artist: decodeText(item.snippet.channelTitle),
-      cover: item.snippet.thumbnails.high ? item.snippet.thumbnails.high.url : item.snippet.thumbnails.default.url
-    }));
-  } catch {
+    return data.items.map(item => {
+      const obj = {
+        id: item.id.videoId,
+        title: decodeText(item.snippet.title),
+        artist: decodeText(item.snippet.channelTitle),
+        cover: item.snippet.thumbnails.high ? item.snippet.thumbnails.high.url : item.snippet.thumbnails.default.url
+      };
+      tracksCache.set(obj.id, obj);
+      return obj;
+    });
+  } catch (e) {
     return [];
   }
 }
@@ -109,7 +124,7 @@ function decodeText(str) {
   return t.value;
 }
 
-// Carga del feed estilo ViviMusic
+// Carga de categorías
 async function filtrarCategoria(cat) {
   document.querySelectorAll('.vivi-chip').forEach(c => {
     c.classList.toggle('active', c.innerText.toLowerCase().includes(cat.toLowerCase()));
@@ -120,7 +135,7 @@ async function filtrarCategoria(cat) {
 
   const tracks = await apiSearch(cat + ' music', 9);
 
-  // 1. Hero Carousel (Daily Discover)
+  // Carrusel grande
   heroList.innerHTML = '';
   tracks.slice(0, 3).forEach(track => {
     const card = document.createElement('div');
@@ -136,60 +151,67 @@ async function filtrarCategoria(cat) {
     heroList.appendChild(card);
   });
 
-  // 2. Community Groups (Tarjetas de 3 canciones como ViviMusic)
+  // Tarjetas comunitarias estilo ViviMusic
   communityList.innerHTML = '';
   const grupo1 = tracks.slice(0, 3);
   const grupo2 = tracks.slice(3, 6);
 
-  [ { title: `${cat} Top Hits`, tracks: grupo1 }, { title: 'Mix Recomendado', tracks: grupo2 } ].forEach(group => {
-    if (group.tracks.length === 0) return;
+  const grupos = [
+    { title: `${cat} Top Hits`, list: grupo1 },
+    { title: 'Mix Recomendado', list: grupo2 }
+  ];
+
+  grupos.forEach(grupo => {
+    if (grupo.list.length === 0) return;
 
     const card = document.createElement('div');
     card.className = 'grouped-card';
 
-    let htmlTracks = '';
-    group.tracks.forEach(t => {
-      htmlTracks += `
-        <div class="mini-track-item" onclick="event.stopPropagation(); playTrackById('${t.id}')">
-          <img src="${t.cover}" alt="Art">
-          <div class="mini-track-info">
-            <div class="mini-track-title">${t.title}</div>
-            <div class="mini-track-artist">${t.artist}</div>
-          </div>
+    const header = document.createElement('div');
+    header.className = 'grouped-card-header';
+    header.innerHTML = `<h3>${grupo.title}</h3><span>ViviMusic Community</span>`;
+    card.appendChild(header);
+
+    grupo.list.forEach(t => {
+      const item = document.createElement('div');
+      item.className = 'mini-track-item';
+      item.innerHTML = `
+        <img src="${t.cover}" alt="Art">
+        <div class="mini-track-info">
+          <div class="mini-track-title">${t.title}</div>
+          <div class="mini-track-artist">${t.artist}</div>
         </div>
       `;
+      item.onclick = (e) => {
+        e.stopPropagation();
+        playTrack(t, grupo.list);
+      };
+      card.appendChild(item);
     });
 
-    card.innerHTML = `
-      <div class="grouped-card-header">
-        <h3>${group.title}</h3>
-        <span>ViviMusic Community</span>
-      </div>
-      ${htmlTracks}
-      <div class="grouped-card-actions">
-        <button class="btn-vivi-play" onclick="playPlaylist(${JSON.stringify(group.tracks).replace(/"/g, '&quot;')})">
-          <i class="fas fa-play"></i> Play
-        </button>
-        <button class="btn-circle-action"><i class="fas fa-tower-broadcast"></i></button>
-        <button class="btn-circle-action"><i class="fas fa-list-ul"></i></button>
-      </div>
+    const actions = document.createElement('div');
+    actions.className = 'grouped-card-actions';
+
+    const playBtn = document.createElement('button');
+    playBtn.className = 'btn-vivi-play';
+    playBtn.innerHTML = '<i class="fas fa-play"></i> Play';
+    playBtn.onclick = () => playTrack(grupo.list[0], grupo.list);
+
+    actions.appendChild(playBtn);
+    actions.innerHTML += `
+      <button class="btn-circle-action"><i class="fas fa-tower-broadcast"></i></button>
+      <button class="btn-circle-action"><i class="fas fa-list-ul"></i></button>
     `;
+    card.appendChild(actions);
+
     communityList.appendChild(card);
   });
 }
 
-window.playPlaylist = (list) => {
-  if (list && list.length > 0) playTrack(list[0], list);
-};
-
-window.playTrackById = async (id) => {
-  const track = currentPlaylist.find(t => t.id === id);
-  if (track) playTrack(track, currentPlaylist);
-};
-
+// Reproducción principal
 function playTrack(track, list) {
-  if (!isPlayerReady) return;
-  currentPlaylist = list || [track];
+  if (!track) return;
+  currentPlaylist = list && list.length > 0 ? list : [track];
   currentIndex = currentPlaylist.findIndex(t => t.id === track.id);
 
   miniTitle.innerText = track.title;
@@ -200,9 +222,15 @@ function playTrack(track, list) {
   fullArtist.innerText = track.artist;
   fullCover.src = track.cover;
 
-  player.loadVideoById(track.id);
-  player.setPlaybackRate(speeds[speedIdx]);
+  if (isPlayerReady && player) {
+    player.loadVideoById({
+      videoId: track.id,
+      startSeconds: 0
+    });
+    player.playVideo();
+  }
 
+  // Historial
   if (!historyTracks.some(t => t.id === track.id)) {
     historyTracks.unshift(track);
     renderLibrary();
@@ -210,10 +238,13 @@ function playTrack(track, list) {
 }
 
 function togglePlay() {
-  if (!isPlayerReady) return;
+  if (!isPlayerReady || !player) return;
   const s = player.getPlayerState();
-  if (s === YT.PlayerState.PLAYING) player.pauseVideo();
-  else player.playVideo();
+  if (s === YT.PlayerState.PLAYING) {
+    player.pauseVideo();
+  } else {
+    player.playVideo();
+  }
 }
 
 function nextTrack() {
@@ -229,10 +260,12 @@ function prevTrack() {
 }
 
 function cycleSpeed() {
-  if (!isPlayerReady) return;
+  if (!isPlayerReady || !player) return;
   speedIdx = (speedIdx + 1) % speeds.length;
   const spd = speeds[speedIdx];
-  player.setPlaybackRate(spd);
+  try {
+    player.setPlaybackRate(spd);
+  } catch (e) {}
   btnSpeed.innerText = spd === 0.75 ? '0.75x' : `${spd}x`;
 }
 
@@ -318,7 +351,7 @@ function renderLibrary() {
   });
 }
 
-// Navegación de Pestañas
+// Navegación de pestañas
 navButtons.forEach(btn => {
   btn.onclick = () => {
     navButtons.forEach(b => b.classList.remove('active'));
@@ -330,7 +363,7 @@ navButtons.forEach(btn => {
   };
 });
 
-// Eventos
+// Eventos de controles
 triggerFullPlayer.onclick = () => fullPlayer.classList.add('open');
 btnCloseFull.onclick = () => fullPlayer.classList.remove('open');
 btnPlayMini.onclick = (e) => { e.stopPropagation(); togglePlay(); };
